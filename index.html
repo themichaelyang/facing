@@ -40,6 +40,7 @@
 </head>
 <body>
   <div id="map"></div>
+  <button id="permissions">Permissions</button>
   <div class="label"><code>alpha, beta</code></div>
   <div id="alpha">n/a</div><div id="beta">n/a</div>
   <div class="label"><code>bearing, pitch</code></div>
@@ -75,6 +76,15 @@
           currentLocation = [position.coords.longitude, position.coords.latitude]
           map.jumpTo({center: currentLocation})
         }, (err) => alert(err.message), {timeout: 1000, enableHighAccuracy: true}) // times out on Arc without high accuracy?
+      }
+
+      document.querySelector("#permissions").onclick = () => {
+        DeviceMotionEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener('devicemotion', () => {});
+            }
+          })
       }
 
       let lastGoodAlpha
