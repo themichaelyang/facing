@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title></title>
+  <meta name="description" content="">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Maplibre GL -->
+  <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+
+  <!-- Maplibre GL Leaflet  -->
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
+  <style>
+    #map {
+      height: 90vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button>Start</button>
+  <script>
+    // inclusive
+    function clamp(v, min, max) {
+      v = Math.max(v, min)
+      return Math.min(v, max)
+    }
+
+    window.onload = () => {
+      // NYC, [lat, lon]
+      let nyc = [40.7128, -74.0060]
+      let la = [34.052235, -118.243683]
+      let defaultZoom = 19
+      let currentLocation
+
+      let map = L.map('map').setView(la, defaultZoom)
+      L.maplibreGL({
+        style: 'https://tiles.openfreemap.org/styles/liberty',
+      }).addTo(map)
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          currentLocation = [position.coords.latitude, position.coords.longitude]
+          map.setView(currentLocation, map.getZoom())
+        }, (err) => alert(err.message), {timeout: 1000, enableHighAccuracy: true}) // times out on Arc without high accuracy?
+      }
+
+      window.addEventListener("deviceorientation", (event) => {
+        // bearing orients top of map, 0 means north is top
+        // pitch orients horizon, 0 means birds eye view (e.g. 2d map), 60 looks at horizon
+
+        // beta = 0 when phone is level, 180 if pointing up, -180 if pointing down and away
+        let bearing = event.alpha
+        let pitch = 60 - (clamp(event.beta, 0, 180) / 180) * 60
+      })
+
+      // let map = L.map('map').setView(coords, 13)
+      // L.tileLayer('https://tiles.openfreemap.org/styles/liberty', {
+      // // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // // L.tileLayer('https://osm.rrze.fau.de/osmde/{z}/{x}/{y}.png', {	
+      //   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      // }).addTo(map)
+    }
+  </script>
+</body>
+</html>
