@@ -6,24 +6,44 @@
   <title></title>
   <meta name="description" content="">
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" /> -->
+  <!-- <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> -->
 
   <!-- Maplibre GL -->
   <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
 
   <!-- Maplibre GL Leaflet  -->
-  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
+  <!-- <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script> -->
   <style>
+    body {
+      margin: 0;
+    }
+
     #map {
-      height: 90vh;
+      height: 80vh;
+    }
+
+    #alpha, #beta, #pitch, #bearing {
+      font-family: monospace;
+      width: 50vw;
+      display: float;
+      float: left;
+      text-align: center;
+    }
+
+    .label {
+      font-family: monospace;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <button>Start</button>
+  <div class="label"><code>alpha, beta</code></div>
+  <div id="alpha">n/a</div><div id="beta">n/a</div>
+  <div class="label"><code>bearing, pitch</code></div>
+  <div id="bearing">n/a</div><div id="pitch">n/a</div>
   <script>
     // inclusive
     function clamp(v, min, max) {
@@ -32,39 +52,57 @@
     }
 
     window.onload = () => {
-      // NYC, [lat, lon]
-      let nyc = [40.7128, -74.0060]
-      let la = [34.052235, -118.243683]
-      let defaultZoom = 19
+      // NYC, [lon, lat]
+      let nyc = [-74.0060, 40.7128]
+      let la = [-118.243683, 34.052235]
+      let defaultZoom = 18
       let currentLocation
 
-      let map = L.map('map').setView(la, defaultZoom)
-      L.maplibreGL({
+      // let map = L.map('map').setView(la, defaultZoom)
+      // L.maplibreGL({
+      //   style: 'https://tiles.openfreemap.org/styles/liberty',
+      // }).addTo(map)
+
+      const map = new maplibregl.Map({
         style: 'https://tiles.openfreemap.org/styles/liberty',
-      }).addTo(map)
+        center: nyc,
+        zoom: defaultZoom,
+        container: 'map',
+      })
 
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition((position) => {
-          currentLocation = [position.coords.latitude, position.coords.longitude]
-          map.setView(currentLocation, map.getZoom())
+          currentLocation = [position.coords.longitude, position.coords.latitude]
+          map.jumpTo({center: currentLocation})
         }, (err) => alert(err.message), {timeout: 1000, enableHighAccuracy: true}) // times out on Arc without high accuracy?
       }
 
+      let lastGoodAlpha
+      let lastGoodGamma
       window.addEventListener("deviceorientation", (event) => {
         // bearing orients top of map, 0 means north is top
         // pitch orients horizon, 0 means birds eye view (e.g. 2d map), 60 looks at horizon
 
-        // beta = 0 when phone is level, 180 if pointing up, -180 if pointing down and away
         let bearing = event.alpha
-        let pitch = 60 - (clamp(event.beta, 0, 180) / 180) * 60
-      })
 
-      // let map = L.map('map').setView(coords, 13)
-      // L.tileLayer('https://tiles.openfreemap.org/styles/liberty', {
-      // // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      // // L.tileLayer('https://osm.rrze.fau.de/osmde/{z}/{x}/{y}.png', {	
-      //   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      // }).addTo(map)
+        // bearing calculation this way becomes very inaccurate when device pointing directly up
+        // we kind of want to project from where the user's head  is estimated to the phone
+        // to get a "bearing"
+        if (Math.abs(event.beta) > 75 && lastGoodAlpha !== undefined) {
+          bearing = lastGoodAlpha
+        } else {
+          lastGoodAlpha = event.alpha
+        }
+        let pitch = clamp(event.beta, 0, 180)
+
+        map.setPitch(pitch)
+        map.setBearing(bearing)
+
+        document.querySelector('#alpha').innerHTML = Math.round(event.alpha)
+        document.querySelector('#beta').innerHTML = Math.round(event.beta)
+        document.querySelector('#pitch').innerHTML = Math.round(pitch)
+        document.querySelector('#bearing').innerHTML = Math.round(bearing)
+      })
     }
   </script>
 </body>
